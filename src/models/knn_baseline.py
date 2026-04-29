@@ -1,5 +1,5 @@
 """
-src/models/knn.py
+src/models/knn_baseline.py
 
 Plain K-Nearest Neighbours classifier using Euclidean distance.
 No metric learning — serves as the baseline all methods are compared against.
@@ -16,7 +16,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
 
-class KNN:
+class KNNBaseline:
     """
     K-Nearest Neighbours with Euclidean distance (no metric learning).
 
@@ -35,7 +35,7 @@ class KNN:
 
     # ── Public interface ─────────────────────────────────────────────
 
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> "KNN":
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> "KNNBaseline":
         X_scaled = self._scaler.fit_transform(X_train)
         self._knn.fit(X_scaled, y_train)
         self._fitted = True
@@ -44,6 +44,11 @@ class KNN:
     def predict(self, X_test: np.ndarray) -> np.ndarray:
         self._check_fitted()
         return self._knn.predict(self._scaler.transform(X_test))
+
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        """Returns standardised input (no additional projection)."""
+        self._check_fitted()
+        return self._scaler.transform(X)
 
     def get_params(self) -> dict:
         return {"k": self.k}
@@ -55,22 +60,4 @@ class KNN:
             raise RuntimeError("Model has not been fitted yet. Call fit() first.")
 
     def __repr__(self) -> str:
-        return f"KNN(k={self.k})"
-
-
-
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-
-if __name__ == "__main__":
-    wine = datasets.load_wine()
-    X, y = wine.data, wine.target
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-    knn = KNN()
-    knn.fit(X_train, y_train)
-    y_pred = knn.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-
-    print(f"Accuracy score of KNN:   {acc * 100:.2f}%")
+        return f"KNNBaseline(k={self.k})"

@@ -26,13 +26,19 @@ Key properties:
 Requires: metric-learn == 0.7.0  with  scikit-learn == 1.5.2
 """
 
+import warnings
 import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
-from metric_learn import LMNN as _LMNN
+
+try:
+    from metric_learn import LMNN as _LMNN
+    _LMNN_AVAILABLE = True
+except ImportError:
+    _LMNN_AVAILABLE = False
 
 
-class LMNN:
+class LMNNModel:
     """
     LMNN metric learning followed by KNN classification.
 
@@ -44,19 +50,42 @@ class LMNN:
 
     name = "LMNN"
 
-    def __init__(self, k_knn: int = 5, k_lmnn: int = 5, n_components: int = 6, max_iter: int = 150, random_state: int = 42):
+    def __init__(
+        self,
+        k: int = 5,
+        n_components: int = 6,
+        max_iter: int = 150,
+        random_state: int = 42,
+    ):
+        if not _LMNN_AVAILABLE:
+            raise ImportError(
+                "metric-learn is required for LMNNModel. "
+                "Install it with:  pip install metric-learn==0.7.0"
+            )
+
+        self.k            = k
+        self.n_components = n_components
+        self.max_iter     = max_iter
+        self.random_state = random_state
+
         self._scaler = StandardScaler()
-        self._lmnn = _LMNN(n_components=n_components, n_neighbors=k_lmnn, max_iter=max_iter, random_state=random_state)
-        self._knn = KNeighborsClassifier(n_neighbors=k_knn)
+        self._lmnn   = _LMNN(
+            n_components=n_components,
+            k=k,
+            max_iter=max_iter,
+            random_state=random_state,
+        )
+        self._knn    = KNeighborsClassifier(n_neighbors=k)
         self._fitted = False
 
     # ── Public interface ─────────────────────────────────────────────
 
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> "LMNN":
-        X_scaled = self._scaler.fit_transform(X_train)
-        self._lmnn.fit(X_scaled, y_train)
-        X_transformed = self._lmnn.transform(X_scaled)
-        self._knn.fit(X_transformed, y_train)
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> "LMNNModel":
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            X_scaled   = self._scaler.fit_transform(X_train)
+            X_embedded = self._lmnn.fit_transform(X_scaled, y_train)
+        self._knn.fit(X_embedded, y_train)
         self._fitted = True
         return self
 
@@ -67,7 +96,9 @@ class LMNN:
     def transform(self, X: np.ndarray) -> np.ndarray:
         """Project X into the learned LMNN (L-space) embedding."""
         self._check_fitted()
-        return self._lmnn.transform(self._scaler.transform(X))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return self._lmnn.transform(self._scaler.transform(X))
 
     def get_params(self) -> dict:
         return {
@@ -84,31 +115,7 @@ class LMNN:
 
     def __repr__(self) -> str:
         return (
-            f"LMNN(k={self.k}, "
+            f"LMNNModel(k={self.k}, "
             f"n_components={self.n_components}, "
             f"max_iter={self.max_iter})"
         )
-    
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from knn import KNN
-
-if __name__ == "__main__":
-    data = datasets.load_wine()
-    X, y = data.data, data.target
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-    # Using only KNN
-    knn = KNN()
-    knn.fit(X_train, y_train)
-    y_pred_knn = knn.predict(X_test)
-    acc_knn = accuracy_score(y_test, y_pred_knn)
-    print(f"Accuracy score of KNN:   {acc_knn * 100:.2f}%")
-
-    # Using KNN with LMNN
-    lmnn = LMNN(k_lmnn=10)
-    lmnn.fit(X_train, y_train)
-    y_pred_lmnn = lmnn.predict(X_test)
-    acc_lmnn = accuracy_score(y_test, y_pred_lmnn)
-    print(f"Accuracy score of LMNN+KNN:   {acc_lmnn * 100:.2f}%")
