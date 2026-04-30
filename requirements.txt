@@ -1,2 +1,29 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# requirements.txt — LMNN vs NCA vs KNN project
+#
+# IMPORTANT: scikit-learn must be pinned to 1.5.x.
+# metric-learn 0.7.0 is incompatible with scikit-learn >= 1.6 due to a
+# breaking API change in sklearn's parameter validation layer.
+#
+# Install:
+#   pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Core ML
 scikit-learn==1.5.2
 metric-learn==0.7.0
+scipy>=1.10,<2.0
+
+# Numerics & plotting
+numpy>=1.24
+matplotlib>=3.7
+
+# Config
+PyYAML>=6.0
+
+# Testing
+pytest>=7.0
+
+# Notebook (optional — only needed for notebooks/analysis.ipynb)
+jupyter>=1.0
+notebook>=7.0

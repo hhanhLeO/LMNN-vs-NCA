@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────────────────────
+# configs/experiment_config.yaml
+# Central configuration for all experiments and ablation sweeps.
+# ─────────────────────────────────────────────────────────────
+
+# ── Global defaults ──────────────────────────────────────────
+defaults:
+  test_size: 0.25
+  random_state: 42
+  k: 5
+  n_components: 6
+  max_iter: 150
+
+# ── Datasets to include ──────────────────────────────────────
+datasets:
+  benchmark:
+    - iris
+    - wine
+    - digits
+  novel:
+    - interleaved_gaussians
+    - anisotropic_blobs
+    - noisy_moons
+
+# ── Per-dataset n_components override ────────────────────────
+# Keeps projections meaningful relative to feature count.
+dataset_components:
+  iris: 3
+  wine: 8
+  digits: 8
+  interleaved_gaussians: 6
+  anisotropic_blobs: 6
+  noisy_moons: 4
+
+# ── Ablation grids ───────────────────────────────────────────
+ablation:
+  # Sweep k on Iris (fast, illustrative)
+  k_sweep:
+    dataset: iris
+    param: k
+    values: [1, 3, 5, 7, 9, 11]
+    fixed:
+      n_components: 3
+      max_iter: 100
+
+  # Sweep n_components on Wine (shows projection sensitivity)
+  components_sweep:
+    dataset: wine
+    param: n_components
+    values: [2, 4, 6, 8, 10]
+    fixed:
+      k: 5
+      max_iter: 100
+
+  # Sweep max_iter on Interleaved Gaussians (convergence check)
+  iter_sweep:
+    dataset: interleaved_gaussians
+    param: max_iter
+    values: [50, 100, 200, 400]
+    fixed:
+      k: 5
+      n_components: 6
+
+# ── Output paths ─────────────────────────────────────────────
+output:
+  results_dir: results
+  main_results_file: results/main_results.json
+  ablation_results_file: results/ablation_results.json
+  plots_dir: results/plots
